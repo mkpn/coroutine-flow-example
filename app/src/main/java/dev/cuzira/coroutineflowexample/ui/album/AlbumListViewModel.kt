@@ -25,8 +25,7 @@ class AlbumListViewModel @Inject constructor(
     fun refresh() = viewModelScope.launch {
         albumRepository.getAlbumsFlow()
             .onEach {
-                println("デバッグ album list onEachって何が来るの？ $it")
-                albumStateFlow.value = it
+                albumStateFlow.emit(it)
             }
             .collect()
     }

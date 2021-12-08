@@ -8,15 +8,18 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import dev.cuzira.coroutineflowexample.databinding.AlbumListFragmentBinding
-import dev.cuzira.coroutineflowexample.databinding.RowPostBinding
+import dev.cuzira.coroutineflowexample.databinding.RowAlbumBinding
 import dev.cuzira.coroutineflowexample.model.Future
-import dev.cuzira.coroutineflowexample.model.Post
+import dev.cuzira.coroutineflowexample.model.album.Album
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -25,7 +28,6 @@ class AlbumListFragment : Fragment() {
     private val viewModel: AlbumListViewModel by viewModels()
     private var _binding: AlbumListFragmentBinding? = null
     private val binding get() = _binding!!
-//    private val directions = MainFragmentDirections
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -40,16 +42,24 @@ class AlbumListFragment : Fragment() {
 
         binding.listContainer.layoutManager = LinearLayoutManager(requireContext())
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED){
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.albumStateFlow.collect {
-                    when(it){
+                    when (it) {
                         is Future.Proceeding -> {
                             binding.progressIndicator.show()
                         }
                         is Future.Success -> {
-                            println("デバッグ success $it")
                             binding.progressIndicator.hide()
-                            binding.listContainer.removeAllViews()
+                            val viewModelList = it.value.map { album ->
+                                val viewModel = ViewModelProvider(
+                                    this@AlbumListFragment,
+                                    AlbumRowViewModel.Factory(album)
+                                )[AlbumRowViewModel::class.java]
+                                viewModel
+                            }
+                            val albumsAdapter = AlbumsAdapter {}
+                            binding.listContainer.adapter = albumsAdapter
+                            albumsAdapter.submitList(viewModelList)
                         }
                         is Future.Error -> {
                             binding.progressIndicator.hide()
@@ -60,26 +70,6 @@ class AlbumListFragment : Fragment() {
                 }
             }
         }
-//        viewModel.postsLiveData.observe(viewLifecycleOwner) {
-//            when (it) {
-//                is Future.Proceeding -> {
-//                    binding.progressIndicator.show()
-//                }
-//                is Future.Success -> {
-//                    binding.progressIndicator.hide()
-//                    binding.listContainer.removeAllViews()
-////                    binding.listContainer.adapter = PostsAdapter(it.value) {
-////                        val action = directions.actionMainFragmentToDetailFragment(it.id)
-////                        findNavController().navigate(action)
-////                    }
-//                }
-//                is Future.Error -> {
-//                    binding.progressIndicator.hide()
-//                    Toast.makeText(requireContext(), it.error.message, Toast.LENGTH_LONG).show()
-//                }
-//            }
-//        }
-
     }
 
     override fun onDestroy() {
@@ -87,27 +77,32 @@ class AlbumListFragment : Fragment() {
         _binding = null
     }
 
+    private object DiffCallback : DiffUtil.ItemCallback<AlbumRowViewModel>() {
+        override fun areItemsTheSame(oldItem: AlbumRowViewModel, newItem: AlbumRowViewModel): Boolean {
+            return oldItem.album.id == newItem.album.id
+        }
 
-    inner class PostsAdapter(
-        private val items: List<Post>,
-        private val onClickListener: (Post) -> Unit,
-    ) : RecyclerView.Adapter<PostsAdapter.ViewHolder>() {
+        override fun areContentsTheSame(oldItem: AlbumRowViewModel, newItem: AlbumRowViewModel): Boolean {
+            return oldItem.album.id == newItem.album.id
+        }
+    }
+
+    inner class AlbumsAdapter(
+        private val onClickListener: (Album) -> Unit,
+    ) : ListAdapter<AlbumRowViewModel, AlbumsAdapter.ViewHolder>(DiffCallback) {
+        inner class ViewHolder(val binding: RowAlbumBinding) : RecyclerView.ViewHolder(binding.root)
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val binding =
-                RowPostBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                RowAlbumBinding.inflate(LayoutInflater.from(parent.context), parent, false)
             return ViewHolder(binding)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val item = items[position]
-            holder.binding.title.text = item.title
-            holder.binding.body.text = item.body
-            holder.binding.root.setOnClickListener { onClickListener(item) }
+            val item = currentList[position]
+            holder.binding.title.text = item.album.title
+            holder.binding.body.text = item.album.id.toString()
+            holder.binding.root.setOnClickListener { onClickListener(item.album) }
         }
-
-        override fun getItemCount(): Int = items.size
-
-        inner class ViewHolder(val binding: RowPostBinding) : RecyclerView.ViewHolder(binding.root)
     }
 }
