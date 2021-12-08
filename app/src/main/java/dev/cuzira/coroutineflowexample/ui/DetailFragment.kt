@@ -16,8 +16,6 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class DetailFragment : Fragment() {
-    private val TAG = this::class.java.simpleName
-
     private val args: DetailFragmentArgs by navArgs()
 
     @Inject

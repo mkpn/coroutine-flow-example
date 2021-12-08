@@ -2,6 +2,7 @@ package dev.cuzira.coroutineflowexample.api
 
 import dev.cuzira.coroutineflowexample.model.Comment
 import dev.cuzira.coroutineflowexample.model.Post
+import dev.cuzira.coroutineflowexample.model.album.Album
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -15,4 +16,7 @@ interface PostApi {
 
     @GET("posts/{id}/comments")
     suspend fun fetchComments(@Path("id") id: Int): Response<List<Comment>>
+
+    @GET("albums")
+    suspend fun fetchAlbums(): Response<List<Album>>
 }

@@ -6,6 +6,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dev.cuzira.coroutineflowexample.BuildConfig
 import dev.cuzira.coroutineflowexample.api.PostApi
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -37,7 +38,7 @@ object ApiModule {
     @Provides
     fun provideRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit =
         Retrofit.Builder()
-            .baseUrl("https://jsonplaceholder.typicode.com")
+            .baseUrl(BuildConfig.API_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
